@@ -730,8 +730,7 @@ int main(int argc, char* argv[]) {
 	header[2] = header[6] = len.r[1];
 	header[3] = start.r[0];
 	header[4] = start.r[1];
-	header[7] = 0x00;
-	header[8] = 0x00;
+	header[7] = header[8] = 0x00;
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(mdrbln, sizeof(uint8_t), mdrbln_len, fp_out) != mdrbln_len) error(7);
 	fclose(fp_out);
@@ -762,12 +761,11 @@ int main(int argc, char* argv[]) {
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
 	start.rrrr = 32201;
 	header[0] = 0x03; //code
-	header[1] = header[5] = len_s.r[0];
-	header[2] = header[6] = len_s.r[1];
+	header[1] = len_s.r[0];
+	header[2] = len_s.r[1];
 	header[3] = start.r[0];
 	header[4] = start.r[1];
-	header[7] = 0xff;
-	header[8] = 0xff;
+	header[5] = header[6] = header[7] = header[8] = 0xff;
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(&main48k[32768], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 	fclose(fp_out);
@@ -778,8 +776,8 @@ int main(int argc, char* argv[]) {
 	fmdr[strlen(fmdr) - 1] = 'M';
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
 	start.rrrr = 65536 - cmsize.rrrr;
-	header[1] = header[5] = cmsize.r[0];
-	header[2] = header[6] = cmsize.r[1];
+	header[1] = cmsize.r[0];
+	header[2] = cmsize.r[1];
 	header[3] = start.r[0];
 	header[4] = start.r[1];
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
@@ -799,8 +797,8 @@ int main(int argc, char* argv[]) {
 		fmdr[strlen(fmdr) - 1] = '1';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
 		start.rrrr = 32256 - unpack_len;
-		header[1] = header[5] = len_s.r[0];
-		header[2] = header[6] = len_s.r[1];
+		header[1] = len_s.r[0];
+		header[2] = len_s.r[1];
 		header[3] = start.r[0];
 		header[4] = start.r[1];
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
@@ -819,8 +817,8 @@ int main(int argc, char* argv[]) {
 		fmdr[strlen(fmdr) - 1] = '2';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
 		start.rrrr = 32255; // don't need to replace the unpacker, just the page number
-		header[1] = header[5] = len_s.r[0];
-		header[2] = header[6] = len_s.r[1];
+		header[1] = len_s.r[0];
+		header[2] = len_s.r[1];
 		header[3] = start.r[0];
 		header[4] = start.r[1];
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
@@ -836,8 +834,8 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '3';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
-		header[1] = header[5] = len_s.r[0];
-		header[2] = header[6] = len_s.r[1];
+		header[1] = len_s.r[0];
+		header[2] = len_s.r[1];
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
@@ -851,8 +849,8 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '4';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
-		header[1] = header[5] = len_s.r[0];
-		header[2] = header[6] = len_s.r[1];
+		header[1] = len_s.r[0];
+		header[2] = len_s.r[1];
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
@@ -866,8 +864,8 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '5';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
-		header[1] = header[5] = len_s.r[0];
-		header[2] = header[6] = len_s.r[1];
+		header[1] = len_s.r[0];
+		header[2] = len_s.r[1];
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
