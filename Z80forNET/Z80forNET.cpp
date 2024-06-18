@@ -539,7 +539,7 @@ int main(int argc, char* argv[]) {
 	else if ((noc_launchstk[noc_launchstk_out] & 7) > 0 && stackpos > 49152 && otek) error(7); // stack in paged memory won't work
 	// compress main
 	rrrr start;
-	rrrr param;
+	//rrrr param;
 	rrrr cmsize;
 	uint8_t* comp;
 	// main
@@ -662,7 +662,7 @@ int main(int argc, char* argv[]) {
 	mdrbln[mdrbln_fcpy] = len.r[0];
 	mdrbln[mdrbln_fcpy + 1] = len.r[1];
 	start.rrrr = 23813;
-	param.rrrr = 0;
+	//param.rrrr = 0;
 	if (!otek) mdrbln[mdrbln_to] = 0x30; // turn off 128k pagin for max 48k compatibility
 	// microdrive settings
 	//uint8_t sector = 0xfe; // max size 254 sectors
@@ -716,9 +716,25 @@ int main(int argc, char* argv[]) {
 	// the drive to pick up the next sector quicker and as a result loads the game faster. After filling the drive it
 	// loops back to the first unused sector
 	// write run (a)	
+	// 0x00 0xfa 0x00 0x05 0x5d 0xfa 0x00 0x00 0x00
+	// basic or code
+	// length in two bytes
+	// start in two bytes
+	// if basic then length again followed by 0x00 0x00
+	// if code then 0xff 0xff 0xff 0xff
+	// 
+	uint8_t header[9];
+	len.rrrr = mdrbln_len;
+	header[0] = 0x00; //basic
+	header[1] = header[5] = len.r[0];
+	header[2] = header[6] = len.r[1];
+	header[3] = start.r[0];
+	header[4] = start.r[1];
+	header[7] = 0x00;
+	header[8] = 0x00;
+	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(mdrbln, sizeof(uint8_t), mdrbln_len, fp_out) != mdrbln_len) error(7);
 	fclose(fp_out);
-	//len.rrrr = mdrbln_len;
 	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, mdrbln, len, start, param, 0x00, u_sector);
 	//
 	// max adder size
@@ -744,19 +760,32 @@ int main(int argc, char* argv[]) {
 	fmdr[strlen(fmdr) -3] = '\0';
 	strcat(fmdr, "0");
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+	start.rrrr = 32201;
+	header[0] = 0x03; //code
+	header[1] = header[5] = len_s.r[0];
+	header[2] = header[6] = len_s.r[1];
+	header[3] = start.r[0];
+	header[4] = start.r[1];
+	header[7] = 0xff;
+	header[8] = 0xff;
+	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(&main48k[32768], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 	fclose(fp_out);
 	//mdrfname[0] = '0';
-	//start.rrrr = 32201;
 	//param.rrrr = 0xffff;
 	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[32768], len_s, start, param, 0x03, u_sector);
 	// write main
 	fmdr[strlen(fmdr) - 1] = 'M';
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+	start.rrrr = 65536 - cmsize.rrrr;
+	header[1] = header[5] = cmsize.r[0];
+	header[2] = header[6] = cmsize.r[1];
+	header[3] = start.r[0];
+	header[4] = start.r[1];
+	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(&comp[287 - adder], sizeof(uint8_t), cmsize.rrrr, fp_out) != cmsize.rrrr) error(7);
 	fclose(fp_out);
 	//mdrfname[0] = 'M';
-	//start.rrrr = 65536 - cmsize.rrrr;
 	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &comp[287 - adder], cmsize, start, param, 0x03, u_sector);
 	free(comp);
 	// memory usage=49152
@@ -768,11 +797,16 @@ int main(int argc, char* argv[]) {
 		for (i = 0; i < unpack_len; i++) main48k[24576 + i] = unpack[i]; // add in unpacker
 		len_s.rrrr += unpack_len;
 		fmdr[strlen(fmdr) - 1] = '1';
-		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
+		start.rrrr = 32256 - unpack_len;
+		header[1] = header[5] = len_s.r[0];
+		header[2] = header[6] = len_s.r[1];
+		header[3] = start.r[0];
+		header[4] = start.r[1];
+		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
 		//mdrfname[0] = '1';
-		//start.rrrr = 32256 - unpack_len;
 		//param.rrrr = 0xffff;
 		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 3
@@ -783,10 +817,15 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr = simplelz(main48k, &main48k[24576 + 1], 16384);
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '2';
-		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
+		start.rrrr = 32255; // don't need to replace the unpacker, just the page number
+		header[1] = header[5] = len_s.r[0];
+		header[2] = header[6] = len_s.r[1];
+		header[3] = start.r[0];
+		header[4] = start.r[1];
+		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//start.rrrr = 32255; // don't need to replace the unpacker, just the page number
 		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 4
 		//mdrfname[0]++;
@@ -796,7 +835,10 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr = simplelz(main48k, &main48k[24576 + 1], 16384);
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '3';
-		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
+		header[1] = header[5] = len_s.r[0];
+		header[2] = header[6] = len_s.r[1];
+		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
 		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
@@ -808,7 +850,10 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr = simplelz(main48k, &main48k[24576 + 1], 16384);
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '4';
-		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open file for write
+		header[1] = header[5] = len_s.r[0];
+		header[2] = header[6] = len_s.r[1];
+		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
 		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
@@ -821,6 +866,9 @@ int main(int argc, char* argv[]) {
 		len_s.rrrr++;
 		fmdr[strlen(fmdr) - 1] = '5';
 		if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
+		header[1] = header[5] = len_s.r[0];
+		header[2] = header[6] = len_s.r[1];
+		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
 		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
