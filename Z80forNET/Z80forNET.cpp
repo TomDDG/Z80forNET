@@ -18,12 +18,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#define VERSION_NUM "v1.0"
+#define VERSION_NUM "v1.0a"
 #define PROGNAME "Z80forNET"
 #define B_GAP 200
 
 //
 // v1 initial release based on v1.2 of Z80onMDRpi
+// v1.0a code refactoring
 //
 // E01 - input file not Z80 or SNA snapshot
 // E02 - cannot open snapshot for read
@@ -539,7 +540,6 @@ int main(int argc, char* argv[]) {
 	else if ((noc_launchstk[noc_launchstk_out] & 7) > 0 && stackpos > 49152 && otek) error(7); // stack in paged memory won't work
 	// compress main
 	rrrr start;
-	//rrrr param;
 	rrrr cmsize;
 	uint8_t* comp;
 	// main
@@ -662,59 +662,8 @@ int main(int argc, char* argv[]) {
 	mdrbln[mdrbln_fcpy] = len.r[0];
 	mdrbln[mdrbln_fcpy + 1] = len.r[1];
 	start.rrrr = 23813;
-	//param.rrrr = 0;
 	if (!otek) mdrbln[mdrbln_to] = 0x30; // turn off 128k pagin for max 48k compatibility
-	// microdrive settings
-	//uint8_t sector = 0xfe; // max size 254 sectors
-	//uint8_t* u_sector;
-	//if ((u_sector = (uint8_t*)malloc(254 * sizeof(uint8_t))) == NULL) error(6);
-	//memset(u_sector, 0x00, 254); // clear used sector array
-	//uint8_t mdrname[] = "          ";
-	//i = 0;
-	//int mp = 0;
-	//do {
-	//	if ((fz80[i] >= 48 && fz80[i] < 58) || (fz80[i] >= 65 && fz80[i] < 91) || (fz80[i] >= 97 && fz80[i] < 123)) mdrname[mp++] = fz80[i];
-	//	i++;
-	//} while (i < strlen(fz80) - 4 && mp < 10);
-	// create a blank cartridge, 137923bytes 254 secotrs * 543 + 1
-	// 137923/4096sectors -> 34 or 139264bytes
-	// 2097152 -> 512 sectors -> 8 cartridges is 272 sectors
-	//rrrr chksum;
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open run file for write
-	//do {
-	//	// header
-	//	chksum.rrrr = sector + 1;
-	//	fputc(0x01, fp_out);
-	//	fputc(sector--, fp_out);
-	//	fputc(0x00, fp_out);
-	//	fputc(0x00, fp_out);
-	//	for (i = 0; i < 10; i++) {
-	//		fputc(mdrname[i], fp_out);
-	//		chksum.rrrr += mdrname[i];
-	//		chksum.rrrr = chksum.rrrr % 255;
-	//	}
-	//	fputc(chksum.r[0], fp_out);
-	//	// blank 2nd header
-	//	chksum.rrrr = 0;
-	//	for (i = 0; i < 14; i++) {
-	//		fputc(0x00, fp_out);
-	//		chksum.rrrr += 0x00;
-	//		chksum.rrrr = chksum.rrrr % 255;
-	//	}
-	//	fputc(chksum.r[0], fp_out);
-	//	chksum.rrrr = 0;
-	//	for (i = 0; i < 512; i++) {
-	//		fputc(0x00, fp_out);
-	//		chksum.rrrr += 0x00;
-	//		chksum.rrrr = chksum.rrrr % 255;
-	//	}
-	//	fputc(chksum.r[0], fp_out);
-	//} while (sector > 0x00);
-	//fputc(0x00, fp_out); // cartridge not write protected
-	//sector = 0xfe;
-	// add files to blank cartridge in interleaved format which leaves a sector between each sector written, which allows 
-	// the drive to pick up the next sector quicker and as a result loads the game faster. After filling the drive it
-	// loops back to the first unused sector
 	// write run (a)	
 	// 0x00 0xfa 0x00 0x05 0x5d 0xfa 0x00 0x00 0x00
 	// basic or code
@@ -722,7 +671,6 @@ int main(int argc, char* argv[]) {
 	// start in two bytes
 	// if basic then length again followed by 0x00 0x00
 	// if code then 0xff 0xff 0xff 0xff
-	// 
 	uint8_t header[9];
 	len.rrrr = mdrbln_len;
 	header[0] = 0x00; //basic
@@ -734,8 +682,6 @@ int main(int argc, char* argv[]) {
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(mdrbln, sizeof(uint8_t), mdrbln_len, fp_out) != mdrbln_len) error(7);
 	fclose(fp_out);
-	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, mdrbln, len, start, param, 0x00, u_sector);
-	//
 	// max adder size
 	if (noc_launchigp_pos < 6912) {
 		// copy prtbuf to ingap code 
@@ -744,13 +690,6 @@ int main(int argc, char* argv[]) {
 		for (i = 0; i < noc_launchprt_len; i++) comp[i + 287 - adder + noc_launchigp_begin + delta] = main48k[6912 + i];
 	}
 	for (i = 0; i < noc_launchprt_len; i++) comp[i + 287 - noc_launchprt_len] = noc_launchprt[i];
-	// sig
-	//uint8_t sigfname[] = "-Z80onMDR-";
-	//uint8_t sigfname[] = "-ZXPicoMD-";
-	//len.rrrr = mdrsig_len;
-	//appendmdrf(mdrname, sigfname, &fp_out, &sector, mdrsig, len, start, param, 0x00, u_sector);
-	//
-	//mdrfname[1] = mdrfname[2] = ' ';
 	rrrr len_s;
 	len_s.rrrr = simplelz(&main48k[0], &main48k[32768 + scrload_len], 6912);
 	len_s.rrrr += scrload_len;
@@ -769,9 +708,6 @@ int main(int argc, char* argv[]) {
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(&main48k[32768], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 	fclose(fp_out);
-	//mdrfname[0] = '0';
-	//param.rrrr = 0xffff;
-	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[32768], len_s, start, param, 0x03, u_sector);
 	// write main
 	fmdr[strlen(fmdr) - 1] = 'M';
 	if ((fp_out = fopen(fmdr, "wb")) == NULL) error(3); // cannot open screen file for write
@@ -783,8 +719,6 @@ int main(int argc, char* argv[]) {
 	if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 	if (fwrite(&comp[287 - adder], sizeof(uint8_t), cmsize.rrrr, fp_out) != cmsize.rrrr) error(7);
 	fclose(fp_out);
-	//mdrfname[0] = 'M';
-	//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &comp[287 - adder], cmsize, start, param, 0x03, u_sector);
 	free(comp);
 	// memory usage=49152
 	// otek pages (c)
@@ -804,11 +738,7 @@ int main(int argc, char* argv[]) {
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//mdrfname[0] = '1';
-		//param.rrrr = 0xffff;
-		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 3
-		//mdrfname[0]++;
 		main48k[24576] = 0x13;
 		fseek(fptmp, bank[6], SEEK_SET);
 		if (fread(main48k, sizeof(uint8_t), 16384, fptmp) != 16384) error(7);
@@ -824,9 +754,7 @@ int main(int argc, char* argv[]) {
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 4
-		//mdrfname[0]++;
 		main48k[24576] = 0x14;
 		fseek(fptmp, bank[7], SEEK_SET);
 		if (fread(main48k, sizeof(uint8_t), 16384, fptmp) != 16384) error(7);
@@ -839,9 +767,7 @@ int main(int argc, char* argv[]) {
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 6
-		//mdrfname[0]++;
 		main48k[24576] = 0x16;
 		fseek(fptmp, bank[9], SEEK_SET);
 		if (fread(main48k, sizeof(uint8_t), 16384, fptmp) != 16384) error(7);
@@ -854,9 +780,7 @@ int main(int argc, char* argv[]) {
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 		// page 7
-		//mdrfname[0]++;
 		main48k[24576] = 0x17;
 		fseek(fptmp, bank[10], SEEK_SET);
 		if (fread(main48k, sizeof(uint8_t), 16384, fptmp) != 16384) error(7);
@@ -869,12 +793,9 @@ int main(int argc, char* argv[]) {
 		if (fwrite(header, sizeof(uint8_t), 9, fp_out) != 9) error(7);
 		if (fwrite(&main48k[24576], sizeof(uint8_t), len_s.rrrr, fp_out) != len_s.rrrr) error(7);
 		fclose(fp_out);
-		//appendmdrf(mdrname, mdrfname, &fp_out, &sector, &main48k[24576], len_s, start, param, 0x03, u_sector);
 	}
 	free(main48k);
-	//free(u_sector);
 	fclose(fptmp);
-	//fclose(fp_out);
 	// all done
 	return 0;
 }
